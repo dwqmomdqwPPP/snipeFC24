@@ -1,10 +1,7 @@
 type IStorage = {
     general: {
         loop_interval: number,
-    },
-    buynow: {
-        buynow_delay: number,
-        instabuy_delay: number,
+        select_last: boolean,
     },
     listitem: {
         bidprice: number,
@@ -15,10 +12,7 @@ type IStorage = {
 export const defaultStorage: IStorage = {
     general: {
         loop_interval: 10,
-    },
-    buynow: {
-        buynow_delay: 0,
-        instabuy_delay: 1000,
+        select_last: true,
     },
     listitem: {
         bidprice: 500,

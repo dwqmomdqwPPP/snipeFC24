@@ -71,6 +71,15 @@ const xCheckResults = async () => {
     return 0
   }
 
+  // search results are available
+  if (options?.general?.select_last) {
+    let auctionData = document.getElementsByClassName("listFUTItem has-auction-data")
+    if (auctionData.length > 0) {
+      let items = auctionData.length
+      await clickButton(auctionData[items - 1])
+    }
+  }
+
   return 1
 }
 
@@ -118,6 +127,11 @@ const xTransmit = async () => {
 
 
 const runLoop = async () => {
+  if (loopState.done) {
+    clearInterval(loopIntervalId)
+    return
+  }
+
   let result = 0
   loopState.sameStepCount++
 
@@ -221,7 +235,6 @@ const stopLooping = () => {
 const abortLoop = () => {
   loopState.done = true
   clearInterval(loopIntervalId)
-  loopIntervalId = null
 }
 
 const searchAndBuyNowLoop = () => {
@@ -230,6 +243,10 @@ const searchAndBuyNowLoop = () => {
 
 const buyNowLoop = () => {
   startLoop([LoopSteps.BUY, LoopSteps.ACKNOWLEDGE, LoopSteps.TRANSMIT])
+}
+
+const searchLoop = () => {
+  startLoop([LoopSteps.SEARCH, LoopSteps.CHECK_RESULTS])
 }
 
 async function decreaseIncreasePrices(idx, decrease, bound = -1) {
@@ -308,7 +325,7 @@ document.addEventListener("keydown", async (event) => {
       decreaseIncreasePrices(3, false);
       break;
     case 's':
-      search();
+      searchLoop();
       break;
     case 'q':
       searchAndBuyNowLoop();

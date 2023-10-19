@@ -1,7 +1,6 @@
 <template>
     <div class="m-4">
-
-        <pre>{{ options }}</pre>
+        <h1 class="text-3xl font-bolder mb-4 text-center border-b pb-2">snipeFC24</h1>
 
         <accordion :number-of-disclosures="3" class="flex flex-col gap-y-4">
             <template #title-1>
@@ -20,27 +19,30 @@ k: enter prices & list on transfer market
 g: buy now</pre>
             </template>
 
-            <template #title-2>Buy Now</template>
+            <template #title-2>Settings</template>
             <template #content-2>
-                <text-input label="Buy Now Delay (ms)" v-model="options.buynow.buynow_delay" type="number" />
-                <text-input label="Insta-Buy Delay (ms)" v-model="options.buynow.instabuy_delay" type="number" />
-            </template>
+                <h2 class="text-xl font-medium">General</h2>
+                <text-input label="Action Loop Interval (ms)" v-model="options.general.loop_interval" type="number" />
+                <check-input label="Autoselect Newest Result" v-model="options.general.select_last" />
 
-            <template #title-3>Quick List</template>
-            <template #content-3>
+                <h2 class="text-xl font-medium mt-4">Quick List</h2>
                 <text-input label="Bid Price" v-model="options.listitem.bidprice" type="number" />
                 <text-input label="Buy Now Price" v-model="options.listitem.buynowprice" type="number" />
             </template>
+
+            <template #title-3>Debug Info</template>
+            <template #content-3>
+                <pre>{{ options }}</pre>
+            </template>
         </accordion>
 
-        <div class="mt-6 text-end">
-            <button class="btn" @click="loadOptions">
-                Load
-            </button>
-            <button class="btn" @click="save">
+        <div class="mt-6">
+            <button class="btn btn-block" @click="save">
                 Save
                 <i class="bi bi-check" v-if="saved"></i>
             </button>
+        </div>
+        <div class="mt-6 text-end">
             <RouterLink to="/about">About</RouterLink>
         </div>
     </div>
@@ -49,6 +51,7 @@ g: buy now</pre>
 <script setup lang="ts">
 import Accordion from '@/components/Accordion.vue';
 import TextInput from '@/components/TextInput.vue';
+import CheckInput from '@/components/CheckInput.vue';
 import {storage, defaultStorage} from '@/storage';
 
 const options = ref(defaultStorage)

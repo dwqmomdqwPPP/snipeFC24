@@ -8,6 +8,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     Accordion: typeof import('./components/Accordion.vue')['default']
+    CheckInput: typeof import('./components/CheckInput.vue')['default']
     FormControl: typeof import('./components/FormControl.vue')['default']
     NumInput: typeof import('./components/NumInput.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
