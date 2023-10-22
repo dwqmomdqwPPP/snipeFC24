@@ -28,6 +28,16 @@ g: buy now</pre>
                 <h2 class="text-xl font-medium mt-4">Quick List</h2>
                 <text-input label="Bid Price" v-model="options.listitem.bidprice" type="number" />
                 <text-input label="Buy Now Price" v-model="options.listitem.buynowprice" type="number" />
+
+                <h2 class="text-xl font-medium mt-4">Auto-sniping</h2>
+                <text-input label="Minimal Wait Time (ms)" v-model="options.autosniping.wait1" type="number" />
+                <text-input label="Maximal Wait Time (ms)" v-model="options.autosniping.wait2" type="number" />
+                <p>
+                    <span class="font-medium">Note:</span> The actual wait time is a random number between the two
+                    values. After each action, we wait a bit to not get banned.
+                </p>
+                <text-input label="Lowest Bid" v-model="options.autosniping.bidlow" type="number" />
+                <text-input label="Highest Bid" v-model="options.autosniping.bidhigh" type="number" />
             </template>
 
             <template #title-3>Debug Info</template>
@@ -35,6 +45,16 @@ g: buy now</pre>
                 <pre>{{ options }}</pre>
             </template>
         </accordion>
+
+        <div class="mt-6">
+            <button class="btn btn-block" @click="toggleAutoSniping"
+                :class="[options.autosniping.enabled ? 'btn-error' : 'btn-success']">
+                <i class="bi bi-crosshair"></i>
+                <span v-if="options.autosniping.enabled">Disable</span>
+                <span v-else>Enable</span>
+                Auto-Sniping
+            </button>
+        </div>
 
         <div class="mt-6">
             <button class="btn btn-block" @click="save">
@@ -57,6 +77,11 @@ import {storage, defaultStorage} from '@/storage';
 const options = ref(defaultStorage)
 
 const saved = refAutoReset(false, 3000)
+
+const toggleAutoSniping = async () => {
+    options.value.autosniping.enabled = !options.value.autosniping.enabled
+    await save()
+}
 
 const save = async () => {
     await storage.set(options.value)

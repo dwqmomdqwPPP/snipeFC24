@@ -1,7 +1,7 @@
 import {storage} from '@/storage'
-import {abort} from 'process';
 
 let options = {}
+let lastSnipingState = false
 
 async function clickButton(element) {
   try {
@@ -37,16 +37,22 @@ enum LoopSteps {
   TRANSMIT,
   GO_BACK,
   FILTER,
+  ADJUST_FILTER,
+  WAIT,
+  EXIT,
 }
 
 const defaultLoopState = {
   steps: [] as LoopSteps[],
+  decisions: {},
   stepIdx: 0,
   looping: false,
   errors: 0,
   done: false,
+  filterDirectionDown: false,
   maxStepDuration: 5000,
   sameStepCount: 0,
+  currentWaitTime: -1,
 }
 const LOOP_MAX_ERRORS = 1
 let loopState = defaultLoopState
@@ -125,6 +131,52 @@ const xTransmit = async () => {
   return 0
 }
 
+const xGoBack = async (step) => {
+  if (step === 1) {
+    console.log('button clicked')
+    var backButton = document.getElementsByClassName("ut-navigation-button-control")[0];
+    let res = await clickButton(backButton);
+    if (res < 0) {
+      return -1
+    }
+  }
+
+  if (step > 5) {
+    return 1
+  }
+
+  return 0
+}
+
+const xAdjustFilter = async (up, min, max) => {
+  var priceValue = document.getElementsByClassName("ut-number-input-control")[0].value;
+
+  if (!priceValue || priceValue <= min) {
+    up = true
+  }
+  if (priceValue >= max) {
+    up = false
+  }
+
+  var incDecClass = 'increment-value';
+  if (!up) {
+    incDecClass = 'decrement-value';
+  }
+  var decIncButton = document.getElementsByClassName(incDecClass)[0];
+  if (decIncButton.classList.contains("disabled")) {
+    return [-1, up]
+  }
+  return [await clickButton(decIncButton), up]
+}
+
+const xWait = async (step, waitTime) => {
+  let currentTime = step * options?.general?.loop_interval ?? 1000
+  if (currentTime >= waitTime) {
+    return 1
+  }
+
+  return 0
+}
 
 const runLoop = async () => {
   if (loopState.done) {
@@ -151,6 +203,23 @@ const runLoop = async () => {
     case LoopSteps.CHECK_RESULTS:
       result = await xCheckResults()
       console.log('Check Results', result)
+      if (loopState.decisions[LoopSteps.CHECK_RESULTS]?.[result]) {
+        console.log('has decision', loopState.decisions[LoopSteps.CHECK_RESULTS][result])
+        let decision = loopState.decisions[LoopSteps.CHECK_RESULTS][result]
+        if (decision === LoopSteps.EXIT) {
+          abortLoop()
+        } else {
+          let nextIdx = loopState.steps.indexOf(decision)
+          if (nextIdx >= 0) {
+            loopState.stepIdx = nextIdx
+          } else {
+            console.log('Unknown decision', decision)
+            abortLoop()
+          }
+        }
+        break
+      }
+
       if (result === -1) {
         loopState.errors += 1
       }
@@ -189,6 +258,25 @@ const runLoop = async () => {
     case LoopSteps.TRANSMIT:
       result = await xTransmit()
       console.log('Transmit', result)
+
+      if (loopState.decisions[LoopSteps.TRANSMIT]?.[result]) {
+        console.log('has decision', loopState.decisions[LoopSteps.TRANSMIT][result])
+        let decision = loopState.decisions[LoopSteps.TRANSMIT][result]
+        if (decision === LoopSteps.EXIT) {
+          abortLoop()
+        } else {
+          let nextIdx = loopState.steps.indexOf(decision)
+          if (nextIdx >= 0) {
+            loopState.stepIdx = nextIdx
+          } else {
+            console.log('Unknown decision', decision)
+            abortLoop()
+          }
+        }
+        break
+      }
+
+
       if (result === -1) {
         loopState.errors += 1
       }
@@ -196,6 +284,56 @@ const runLoop = async () => {
         loopState.stepIdx++
         loopState.sameStepCount = 0
       }
+      break
+
+    case LoopSteps.GO_BACK:
+      result = await xGoBack(loopState.sameStepCount)
+      console.log('Go Back', result)
+      if (result === -1) {
+        loopState.errors += 1
+      }
+      if (result === 1) {
+        loopState.stepIdx++
+        loopState.sameStepCount = 0
+      }
+      break
+
+    case LoopSteps.ADJUST_FILTER:
+      [result, loopState.filterDirectionDown] = await xAdjustFilter(loopState.filterDirectionDown, options?.autosniping?.bidlow ?? 150, options?.autosniping?.bidhigh ?? 850)
+      console.log('Adjust Filter', result)
+      if (result === -1) {
+        loopState.errors += 1
+      }
+      if (result === 1) {
+        loopState.stepIdx++
+        loopState.sameStepCount = 0
+      }
+      break
+
+    case LoopSteps.WAIT:
+      if (loopState.currentWaitTime < 0) {
+        loopState.currentWaitTime = Math.floor(
+          Math.random() * (
+            options?.autosniping?.wait2 ?? 1000 - options?.autosniping?.wait1 ?? 500
+          )
+        ) + (options?.autosniping?.wait1 ?? 500)
+      }
+      result = await xWait(loopState.sameStepCount, loopState.currentWaitTime)
+      // console.log('Wait', result, loopState.sameStepCount, loopState.currentWaitTime)
+      if (result === -1) {
+        loopState.errors += 1
+      }
+      if (result === 1) {
+        loopState.currentWaitTime = -1
+        loopState.stepIdx++
+        loopState.sameStepCount = 0
+      }
+      break
+
+
+    default:
+      console.log('Unknown step', loopState.steps[loopState.stepIdx])
+      abortLoop()
       break
   }
 
@@ -219,9 +357,15 @@ const runLoop = async () => {
   }
 }
 
-const startLoop = (steps) => {
+const startLoop = (steps, looping = false, decisions = {},) => {
+  if (loopIntervalId) {
+    abortLoop()
+  }
+
   loopState = JSON.parse(JSON.stringify(defaultLoopState))
   loopState.steps = steps
+  loopState.looping = looping
+  loopState.decisions = decisions
 
   loopIntervalId = setInterval(async () => {
     await runLoop()
@@ -235,6 +379,10 @@ const stopLooping = () => {
 const abortLoop = () => {
   loopState.done = true
   clearInterval(loopIntervalId)
+  loopIntervalId = null
+  options.autosniping.enabled = false
+  lastSnipingState = false
+  saveOptions()
 }
 
 const searchAndBuyNowLoop = () => {
@@ -247,6 +395,33 @@ const buyNowLoop = () => {
 
 const searchLoop = () => {
   startLoop([LoopSteps.SEARCH, LoopSteps.CHECK_RESULTS])
+}
+
+const startSniping = () => {
+  //let steps = [LoopSteps.SEARCH, LoopSteps.CHECK_RESULTS, 
+  //LoopSteps.BUY, LoopSteps.ACKNOWLEDGE, LoopSteps.TRANSMIT, LoopSteps.GO_BACK, LoopSteps.WAIT, LoopSteps.ADJUST_FILTER, LoopSteps.WAIT]
+  let steps = [
+    LoopSteps.SEARCH,
+    LoopSteps.CHECK_RESULTS,
+    LoopSteps.BUY,
+    LoopSteps.ACKNOWLEDGE,
+    LoopSteps.TRANSMIT,
+    LoopSteps.WAIT,
+    LoopSteps.GO_BACK,
+    LoopSteps.WAIT,
+    LoopSteps.ADJUST_FILTER,
+    LoopSteps.WAIT
+  ]
+  let decisions = {
+    [LoopSteps.CHECK_RESULTS]: {
+      2: LoopSteps.WAIT,
+    },
+    [LoopSteps.TRANSMIT]: {
+      1: LoopSteps.EXIT,
+      [-1]: LoopSteps.WAIT,
+    }
+  }
+  startLoop(steps, true, decisions)
 }
 
 async function decreaseIncreasePrices(idx, decrease, bound = -1) {
@@ -348,11 +523,27 @@ document.addEventListener("keydown", async (event) => {
   }
 })
 
+// save options
+const saveOptions = async () => {
+  await storage.set(options)
+  console.log('saved options', options)
+}
+
 // load the settings from storage
 const loadOptions = async () => {
   const data = await storage.get();
   Object.assign(options, data)
   console.log('loaded options', options)
+
+  if (options?.autosniping?.enabled && !lastSnipingState) {
+    console.log('starting sniping')
+    lastSnipingState = true
+    startSniping()
+  } else if (!options?.autosniping?.enabled && lastSnipingState) {
+    console.log('stopping sniping')
+    lastSnipingState = false
+    abortLoop()
+  }
 }
 loadOptions()
 
@@ -362,3 +553,18 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
     await loadOptions();
   }
 });
+
+// // load the iframe
+// import './index.scss'
+// 
+// const src = chrome.runtime.getURL('src/content-script/iframe/index.html')
+// 
+// const iframe = new DOMParser().parseFromString(
+//   `<iframe class="crx-iframe" src="${src}"></iframe>`,
+//   'text/html'
+// ).body.firstElementChild
+// 
+// if (iframe) {
+//   document.body?.append(iframe)
+// }
+// import './index.scss'

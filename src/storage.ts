@@ -6,6 +6,13 @@ type IStorage = {
     listitem: {
         bidprice: number,
         buynowprice: number,
+    },
+    autosniping: {
+        wait1: number,
+        wait2: number,
+        bidlow: number,
+        bidhigh: number,
+        enabled: boolean,
     }
 }
 
@@ -17,7 +24,14 @@ export const defaultStorage: IStorage = {
     listitem: {
         bidprice: 500,
         buynowprice: 10000,
-    }
+    },
+    autosniping: {
+        wait1: 500,
+        wait2: 1000,
+        bidlow: 150,
+        bidhigh: 850,
+        enabled: false,
+    },
 }
 
 export const storage = {

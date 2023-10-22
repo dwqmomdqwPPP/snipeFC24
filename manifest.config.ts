@@ -28,5 +28,18 @@ export default defineManifest(async (env) => ({
       matches: ['*://www.ea.com/*ea-sports-fc/ultimate-team/web-app/*'],
     },
   ],
-  permissions: ['storage',],
+  permissions: [
+    'storage',
+    'activeTab',
+  ],
+  web_accessible_resources: [
+    {
+      matches: ['*://*/*'],
+      resources: ['src/content-script/index.ts'],
+    },
+    {
+      matches: ['*://*/*'],
+      resources: ['src/content-script/iframe/index.html'],
+    },
+  ],
 }))
