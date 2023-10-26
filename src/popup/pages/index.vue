@@ -23,7 +23,11 @@ g: buy now</pre>
             <template #content-2>
                 <h2 class="text-xl font-medium">General</h2>
                 <text-input label="Action Loop Interval (ms)" v-model="options.general.loop_interval" type="number" />
-                <check-input label="Autoselect Newest Result" v-model="options.general.select_last" />
+
+                <div class="label">
+                    <div class="label-text">Autoselect cards</div>
+                </div>
+                <radio-group v-model="autoselect" :items="autoselectItems" />
 
                 <h2 class="text-xl font-medium mt-4">Quick List</h2>
                 <text-input label="Bid Price" v-model="options.listitem.bidprice" type="number" />
@@ -73,10 +77,31 @@ import Accordion from '@/components/Accordion.vue';
 import TextInput from '@/components/TextInput.vue';
 import CheckInput from '@/components/CheckInput.vue';
 import {storage, defaultStorage} from '@/storage';
+import RadioGroup from '@/components/RadioGroup.vue';
 
 const options = ref(defaultStorage)
 
 const saved = refAutoReset(false, 3000)
+const autoselect = ref(0)
+const autoselectItems = ref([
+    {
+        title: 'None',
+        description: 'The first card will be selected (default)'
+    },
+    {
+        title: 'Newest',
+        description: 'The newest (= last) card will be selected',
+    },
+    {
+        title: 'Cheapest',
+        description: 'The cheapest card will be selected',
+    }
+])
+
+watch(autoselect, (val) => {
+    console.log(autoselect.value)
+    options.value.general.select_card = autoselectItems.value.indexOf(val)
+})
 
 const toggleAutoSniping = async () => {
     options.value.autosniping.enabled = !options.value.autosniping.enabled
@@ -91,6 +116,7 @@ const save = async () => {
 const loadOptions = async () => {
     const data = await storage.get()
     options.value = data
+    autoselect.value = autoselectItems.value[data.general.select_card]
 }
 
 onMounted(async () => {

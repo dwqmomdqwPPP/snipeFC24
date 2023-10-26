@@ -1,7 +1,7 @@
 type IStorage = {
     general: {
         loop_interval: number,
-        select_last: boolean,
+        select_card: number,
     },
     listitem: {
         bidprice: number,
@@ -19,7 +19,7 @@ type IStorage = {
 export const defaultStorage: IStorage = {
     general: {
         loop_interval: 10,
-        select_last: true,
+        select_card: 0,
     },
     listitem: {
         bidprice: 500,

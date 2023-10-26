@@ -9,6 +9,7 @@ declare module 'vue' {
   export interface GlobalComponents {
     Accordion: typeof import('./components/Accordion.vue')['default']
     CheckInput: typeof import('./components/CheckInput.vue')['default']
+    RadioGroup: typeof import('./components/RadioGroup.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     TextInput: typeof import('./components/TextInput.vue')['default']

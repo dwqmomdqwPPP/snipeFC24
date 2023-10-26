@@ -78,11 +78,30 @@ const xCheckResults = async () => {
   }
 
   // search results are available
-  if (options?.general?.select_last) {
+  if (options?.general?.select_card === 1) {
     let auctionData = document.getElementsByClassName("listFUTItem has-auction-data")
     if (auctionData.length > 0) {
       let items = auctionData.length
       await clickButton(auctionData[items - 1])
+    }
+  } else if (options?.general?.select_card === 2) {
+    let auctionData = document.getElementsByClassName("listFUTItem has-auction-data")
+    let prices = []
+    for (let i = 0; i < auctionData.length; i++) {
+      let auction = auctionData[i].getElementsByClassName("currency-coins value")
+      if (auction.length < 1) {
+        continue
+      }
+      let price = Number(auction[auction.length - 1].textContent?.replaceAll(',', ''))
+      console.log(price)
+      prices.push(price)
+    }
+    let minPrice = Math.min(...prices)
+    let minIdx = prices.indexOf(minPrice)
+    console.log(prices, minPrice, minIdx)
+
+    if (minIdx > 0) {
+      await clickButton(auctionData[minIdx])
     }
   }
 
@@ -212,6 +231,7 @@ const runLoop = async () => {
           let nextIdx = loopState.steps.indexOf(decision)
           if (nextIdx >= 0) {
             loopState.stepIdx = nextIdx
+            loopState.sameStepCount = 0
           } else {
             console.log('Unknown decision', decision)
             abortLoop()
@@ -268,6 +288,7 @@ const runLoop = async () => {
           let nextIdx = loopState.steps.indexOf(decision)
           if (nextIdx >= 0) {
             loopState.stepIdx = nextIdx
+            loopState.sameStepCount = 0
           } else {
             console.log('Unknown decision', decision)
             abortLoop()
@@ -517,6 +538,14 @@ document.addEventListener("keydown", async (event) => {
     case 'k':
       enterPriceAndListNow();
       break;
+    case 't':
+      if (options.autosniping.enabled) {
+        options.autosniping.enabled = false
+      } else {
+        options.autosniping.enabled = true
+      }
+      saveOptions()
+      break
     default:
       console.log(event);
       break;
