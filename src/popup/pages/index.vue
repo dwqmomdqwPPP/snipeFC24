@@ -42,6 +42,8 @@ g: buy now</pre>
                 </p>
                 <text-input label="Lowest Bid" v-model="options.autosniping.bidlow" type="number" />
                 <text-input label="Highest Bid" v-model="options.autosniping.bidhigh" type="number" />
+                <check-input label="Autolist cards" v-model="options.autosniping.autolist" />
+                <text-input label="Stop After X Cards" v-model="options.autosniping.max_cards" type="number" />
             </template>
 
             <template #title-3>Debug Info</template>

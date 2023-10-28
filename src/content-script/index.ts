@@ -40,7 +40,24 @@ enum LoopSteps {
   ADJUST_FILTER,
   WAIT,
   EXIT,
+  FINISH_SUCCESS,
+  LIST_ITEM,
 }
+const LOOP_STEP_NAMES = [
+  'NONE',
+  'SEARCH',
+  'CHECK_RESULTS',
+  'BUY',
+  'ACKNOWLEDGE',
+  'TRANSMIT',
+  'GO_BACK',
+  'FILTER',
+  'ADJUST_FILTER',
+  'WAIT',
+  'EXIT',
+  'FINISH_SUCCESS',
+  'LIST_ITEM',
+]
 
 const defaultLoopState = {
   steps: [] as LoopSteps[],
@@ -53,6 +70,7 @@ const defaultLoopState = {
   maxStepDuration: 5000,
   sameStepCount: 0,
   currentWaitTime: -1,
+  snipedCards: 0,
 }
 const LOOP_MAX_ERRORS = 1
 let loopState = defaultLoopState
@@ -143,6 +161,7 @@ const xTransmit = async () => {
   if (auctionInfo.length) {
     let subHeading = document.getElementsByClassName("subHeading")
     if (subHeading.length && subHeading[0].textContent?.includes("Congratulations")) {
+      loopState.snipedCards++
       return 1
     }
   }
@@ -188,6 +207,33 @@ const xAdjustFilter = async (up, min, max) => {
   return [await clickButton(decIncButton), up]
 }
 
+const xListItem = async () => {
+  var detailpanel = document.querySelector(".DetailPanel");
+  if (!detailpanel) {
+    console.log('no detailpanel')
+    return -1
+  }
+
+  var inputs = detailpanel.querySelectorAll(".ut-number-input-control") as NodeListOf<HTMLInputElement>;
+  if (inputs.length < 2) {
+    console.log('no inputs')
+    return -1
+  }
+
+  var bidPriceInput = inputs[0];
+  var buyNowPriceInput = inputs[1];
+  bidPriceInput.value = options?.listitem?.bidprice ?? 500;
+  buyNowPriceInput.value = options?.listitem?.buynowprice ?? 10000;
+
+  var listNowButton = detailpanel.querySelector(".call-to-action");
+  if (!listNowButton) {
+    console.log('no listnow button')
+    return -1
+  }
+  return await clickButton(listNowButton);
+}
+
+
 const xWait = async (step, waitTime) => {
   let currentTime = step * options?.general?.loop_interval ?? 1000
   if (currentTime >= waitTime) {
@@ -203,132 +249,41 @@ const runLoop = async () => {
     return
   }
 
+  let currentStep = loopState.steps[loopState.stepIdx]
   let result = 0
   loopState.sameStepCount++
 
-  switch (loopState.steps[loopState.stepIdx]) {
+  switch (currentStep) {
     case LoopSteps.SEARCH:
       result = await xSearch()
-      console.log('Search', result)
-      if (result === -1) {
-        loopState.errors += 1
-      }
-      if (result === 1) {
-        loopState.stepIdx++
-        loopState.sameStepCount = 0
-      }
       break
 
     case LoopSteps.CHECK_RESULTS:
       result = await xCheckResults()
-      console.log('Check Results', result)
-      if (loopState.decisions[LoopSteps.CHECK_RESULTS]?.[result]) {
-        console.log('has decision', loopState.decisions[LoopSteps.CHECK_RESULTS][result])
-        let decision = loopState.decisions[LoopSteps.CHECK_RESULTS][result]
-        if (decision === LoopSteps.EXIT) {
-          abortLoop()
-        } else {
-          let nextIdx = loopState.steps.indexOf(decision)
-          if (nextIdx >= 0) {
-            loopState.stepIdx = nextIdx
-            loopState.sameStepCount = 0
-          } else {
-            console.log('Unknown decision', decision)
-            abortLoop()
-          }
-        }
-        break
-      }
-
-      if (result === -1) {
-        loopState.errors += 1
-      }
-      if (result === 1) {
-        loopState.stepIdx++
-        loopState.sameStepCount = 0
-      }
-      if (result === 2) {
-        loopState.errors += 1
-      }
       break
 
     case LoopSteps.BUY:
       result = await xBuyNow()
-      console.log('Buy', result)
-      if (result === -1) {
-        loopState.errors += 1
-      }
-      if (result === 1) {
-        loopState.stepIdx++
-        loopState.sameStepCount = 0
-      }
       break
 
     case LoopSteps.ACKNOWLEDGE:
       result = await xAcknowledge()
-      console.log('Acknowledge', result)
-      if (result === -1) {
-        loopState.errors += 1
-      }
-      if (result === 1) {
-        loopState.stepIdx++
-        loopState.sameStepCount = 0
-      }
       break
+
     case LoopSteps.TRANSMIT:
       result = await xTransmit()
-      console.log('Transmit', result)
-
-      if (loopState.decisions[LoopSteps.TRANSMIT]?.[result]) {
-        console.log('has decision', loopState.decisions[LoopSteps.TRANSMIT][result])
-        let decision = loopState.decisions[LoopSteps.TRANSMIT][result]
-        if (decision === LoopSteps.EXIT) {
-          abortLoop()
-        } else {
-          let nextIdx = loopState.steps.indexOf(decision)
-          if (nextIdx >= 0) {
-            loopState.stepIdx = nextIdx
-            loopState.sameStepCount = 0
-          } else {
-            console.log('Unknown decision', decision)
-            abortLoop()
-          }
-        }
-        break
-      }
-
-
-      if (result === -1) {
-        loopState.errors += 1
-      }
-      if (result === 1) {
-        loopState.stepIdx++
-        loopState.sameStepCount = 0
-      }
       break
 
     case LoopSteps.GO_BACK:
       result = await xGoBack(loopState.sameStepCount)
-      console.log('Go Back', result)
-      if (result === -1) {
-        loopState.errors += 1
-      }
-      if (result === 1) {
-        loopState.stepIdx++
-        loopState.sameStepCount = 0
-      }
       break
 
     case LoopSteps.ADJUST_FILTER:
       [result, loopState.filterDirectionDown] = await xAdjustFilter(loopState.filterDirectionDown, options?.autosniping?.bidlow ?? 150, options?.autosniping?.bidhigh ?? 850)
-      console.log('Adjust Filter', result)
-      if (result === -1) {
-        loopState.errors += 1
-      }
-      if (result === 1) {
-        loopState.stepIdx++
-        loopState.sameStepCount = 0
-      }
+      break
+
+    case LoopSteps.LIST_ITEM:
+      result = await xListItem()
       break
 
     case LoopSteps.WAIT:
@@ -340,15 +295,6 @@ const runLoop = async () => {
         ) + (options?.autosniping?.wait1 ?? 500)
       }
       result = await xWait(loopState.sameStepCount, loopState.currentWaitTime)
-      // console.log('Wait', result, loopState.sameStepCount, loopState.currentWaitTime)
-      if (result === -1) {
-        loopState.errors += 1
-      }
-      if (result === 1) {
-        loopState.currentWaitTime = -1
-        loopState.stepIdx++
-        loopState.sameStepCount = 0
-      }
       break
 
 
@@ -356,6 +302,41 @@ const runLoop = async () => {
       console.log('Unknown step', loopState.steps[loopState.stepIdx])
       abortLoop()
       break
+  }
+
+  console.log(LOOP_STEP_NAMES[currentStep], result, loopState.sameStepCount, loopState.currentWaitTime)
+
+  if (loopState.decisions[currentStep]?.[result]) {
+    let decision = loopState.decisions[currentStep][result]
+    if (decision === loopState.steps.length) {
+      sendNotification('Success', 'Item bought')
+      abortLoop()
+      return
+    } else if (decision === -1) {
+      abortLoop()
+      return
+    } else {
+      let nextIdx = loopState.decisions[currentStep][result]
+      if (nextIdx >= 0) {
+        loopState.stepIdx = nextIdx
+        loopState.sameStepCount = 0
+      } else {
+        console.log('Unknown decision', decision)
+        abortLoop()
+        return
+      }
+    }
+  } else {
+    if (result === -1) {
+      loopState.errors += 1
+    }
+    if (result === 1) {
+      loopState.stepIdx++
+      loopState.sameStepCount = 0
+    }
+    if (result === 2) {
+      loopState.errors += 1
+    }
   }
 
   if (loopState.stepIdx >= loopState.steps.length) {
@@ -368,6 +349,11 @@ const runLoop = async () => {
 
   if (loopState.errors >= LOOP_MAX_ERRORS) {
     console.log('Too many errors, stopping')
+    abortLoop()
+  }
+
+  if (loopState.snipedCards >= (options?.autosniping?.max_cards ?? 10)) {
+    console.log('Sniped item limit reached, stopping')
     abortLoop()
   }
 
@@ -419,8 +405,6 @@ const searchLoop = () => {
 }
 
 const startSniping = () => {
-  //let steps = [LoopSteps.SEARCH, LoopSteps.CHECK_RESULTS, 
-  //LoopSteps.BUY, LoopSteps.ACKNOWLEDGE, LoopSteps.TRANSMIT, LoopSteps.GO_BACK, LoopSteps.WAIT, LoopSteps.ADJUST_FILTER, LoopSteps.WAIT]
   let steps = [
     LoopSteps.SEARCH,
     LoopSteps.CHECK_RESULTS,
@@ -428,18 +412,29 @@ const startSniping = () => {
     LoopSteps.ACKNOWLEDGE,
     LoopSteps.TRANSMIT,
     LoopSteps.WAIT,
+  ]
+
+  if (options?.autosniping?.autolist) {
+    steps.push(...[
+      LoopSteps.LIST_ITEM,
+      LoopSteps.WAIT,
+      LoopSteps.WAIT,
+    ])
+  }
+  steps.push(...[
     LoopSteps.GO_BACK,
     LoopSteps.WAIT,
     LoopSteps.ADJUST_FILTER,
     LoopSteps.WAIT
-  ]
+  ])
+
   let decisions = {
     [LoopSteps.CHECK_RESULTS]: {
-      2: LoopSteps.WAIT,
+      2: steps.length - 5,
     },
     [LoopSteps.TRANSMIT]: {
-      1: LoopSteps.EXIT,
-      [-1]: LoopSteps.WAIT,
+      1: options?.autosniping?.max_cards == 1 ? steps.length : undefined,
+      [-1]: steps.length - 5,
     }
   }
   startLoop(steps, true, decisions)
@@ -582,6 +577,18 @@ chrome.storage.onChanged.addListener(async (changes, area) => {
     await loadOptions();
   }
 });
+
+const sendNotification = (title, message) => {
+  chrome.runtime.sendMessage({
+    type: 'notification',
+    options: {
+      title: title,
+      message: message,
+      iconUrl: './logo.png',
+      type: 'basic',
+    }
+  })
+}
 
 // // load the iframe
 // import './index.scss'

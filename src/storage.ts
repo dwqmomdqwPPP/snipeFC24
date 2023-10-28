@@ -13,6 +13,8 @@ type IStorage = {
         bidlow: number,
         bidhigh: number,
         enabled: boolean,
+        max_cards: number,
+        autolist: boolean,
     }
 }
 
@@ -31,6 +33,8 @@ export const defaultStorage: IStorage = {
         bidlow: 150,
         bidhigh: 850,
         enabled: false,
+        max_cards: 10,
+        autolist: false,
     },
 }
 
