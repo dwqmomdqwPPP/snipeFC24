@@ -48,7 +48,11 @@ g: buy now</pre>
 
             <template #title-3>Debug Info</template>
             <template #content-3>
+                <h2 class="text-xl font-medium">Settings</h2>
                 <pre>{{ options }}</pre>
+
+                <h2 class="text-xl font-medium mt-4">Stats</h2>
+                <pre>{{ curStats }}</pre>
             </template>
         </accordion>
 
@@ -79,9 +83,11 @@ import Accordion from '@/components/Accordion.vue';
 import TextInput from '@/components/TextInput.vue';
 import CheckInput from '@/components/CheckInput.vue';
 import {storage, defaultStorage} from '@/storage';
+import {stats, defaultStats} from '@/stats';
 import RadioGroup from '@/components/RadioGroup.vue';
 
 const options = ref(defaultStorage)
+const curStats = ref(defaultStats)
 
 const saved = refAutoReset(false, 3000)
 const autoselect = ref(0)
@@ -121,19 +127,27 @@ const loadOptions = async () => {
     autoselect.value = autoselectItems.value[data.general.select_card]
 }
 
+const loadStats = async () => {
+    const data = await stats.get()
+    curStats.value = data
+}
+
 onMounted(async () => {
     await loadOptions()
+    await loadStats()
 })
 
 chrome.runtime.onInstalled.addListener(async (opt) => {
     if (opt.reason === 'install') {
         await loadOptions()
+        await loadStats()
     }
 })
 
 chrome.storage.onChanged.addListener(async (changes, area) => {
     if (area === 'sync') {
         await loadOptions()
+        await loadStats()
     }
 })
 </script>

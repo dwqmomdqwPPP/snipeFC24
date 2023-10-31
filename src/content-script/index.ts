@@ -1,6 +1,8 @@
 import {storage} from '@/storage'
+import {stats, defaultStats} from '@/stats'
 
 let options = {}
+let allStats = {}
 let lastSnipingState = false
 
 async function clickButton(element) {
@@ -81,6 +83,8 @@ const xSearch = async () => {
   if (searchButton.length < 1) {
     return -1
   }
+
+  statsAddSearch()
   return await clickButton(searchButton[0]);
 }
 
@@ -111,12 +115,12 @@ const xCheckResults = async () => {
         continue
       }
       let price = Number(auction[auction.length - 1].textContent?.replaceAll(',', ''))
-      console.log(price)
+      // console.log(price)
       prices.push(price)
     }
     let minPrice = Math.min(...prices)
     let minIdx = prices.indexOf(minPrice)
-    console.log(prices, minPrice, minIdx)
+    // console.log(prices, minPrice, minIdx)
 
     if (minIdx > 0) {
       await clickButton(auctionData[minIdx])
@@ -157,11 +161,16 @@ const xTransmit = async () => {
     }
   }
 
-  let auctionInfo = document.getElementsByClassName("auctionInfo")
-  if (auctionInfo.length) {
-    let subHeading = document.getElementsByClassName("subHeading")
-    if (subHeading.length && subHeading[0].textContent?.includes("Congratulations")) {
+  let auctionInfo = document.querySelector(".auctionInfo")
+  if (auctionInfo) {
+    let subHeading = auctionInfo.querySelector(".subHeading")
+    if (subHeading && subHeading.textContent?.includes("Congratulations")) {
+      let coinsSpent = Number(auctionInfo.querySelector('.currency-coins')?.textContent?.replaceAll(',', ''))
       loopState.snipedCards++
+      console.log('coins spent', coinsSpent)
+
+      await statsAddSniped(coinsSpent)
+
       return 1
     }
   }
@@ -171,7 +180,7 @@ const xTransmit = async () => {
 
 const xGoBack = async (step) => {
   if (step === 1) {
-    console.log('button clicked')
+    // console.log('button clicked')
     var backButton = document.getElementsByClassName("ut-navigation-button-control")[0];
     let res = await clickButton(backButton);
     if (res < 0) {
@@ -186,8 +195,8 @@ const xGoBack = async (step) => {
   return 0
 }
 
-const xAdjustFilter = async (up, min, max) => {
-  var priceValue = document.getElementsByClassName("ut-number-input-control")[0].value;
+const xAdjustFilter = async (up: boolean, min: number, max: number) => {
+  var priceValue = Number(document.getElementsByClassName("ut-number-input-control")[0].value.replaceAll(',', ''));
 
   if (!priceValue || priceValue <= min) {
     up = true
@@ -304,7 +313,7 @@ const runLoop = async () => {
       break
   }
 
-  console.log(LOOP_STEP_NAMES[currentStep], result, loopState.sameStepCount, loopState.currentWaitTime)
+  // console.log(LOOP_STEP_NAMES[currentStep], result, loopState.sameStepCount, loopState.currentWaitTime)
 
   if (loopState.decisions[currentStep]?.[result]) {
     let decision = loopState.decisions[currentStep][result]
@@ -405,6 +414,7 @@ const searchLoop = () => {
 }
 
 const startSniping = () => {
+  resetCurrentSessionStats()
   let steps = [
     LoopSteps.SEARCH,
     LoopSteps.CHECK_RESULTS,
@@ -465,7 +475,7 @@ async function search() {
   let result = await xSearch()
 
   if (result === -1) {
-    console.log('search failed')
+    // console.log('search failed')
   }
 }
 
@@ -550,7 +560,6 @@ document.addEventListener("keydown", async (event) => {
 // save options
 const saveOptions = async () => {
   await storage.set(options)
-  console.log('saved options', options)
 }
 
 // load the settings from storage
@@ -560,11 +569,9 @@ const loadOptions = async () => {
   console.log('loaded options', options)
 
   if (options?.autosniping?.enabled && !lastSnipingState) {
-    console.log('starting sniping')
     lastSnipingState = true
     startSniping()
   } else if (!options?.autosniping?.enabled && lastSnipingState) {
-    console.log('stopping sniping')
     lastSnipingState = false
     abortLoop()
   }
@@ -574,6 +581,7 @@ loadOptions()
 // listen for changes to the settings & update the object
 chrome.storage.onChanged.addListener(async (changes, area) => {
   if (area === 'sync') {
+    // console.log(changes);
     await loadOptions();
   }
 });
@@ -589,6 +597,33 @@ const sendNotification = (title, message) => {
     }
   })
 }
+
+const resetCurrentSessionStats = async () => {
+  const data = await stats.get();
+  data.currentSession = JSON.parse(JSON.stringify(defaultStats.currentSession))
+  await stats.set(data)
+}
+
+const statsAddSniped = async (coins: number) => {
+  const data = await stats.get();
+
+  data.total.snipedCards++
+  data.total.coinsSpent += coins
+  data.currentSession.snipedCards++
+  data.currentSession.coinsSpent += coins
+
+  await stats.set(data)
+}
+
+const statsAddSearch = async () => {
+  const data = await stats.get();
+
+  data.total.searches++
+  data.currentSession.searches++
+
+  await stats.set(data)
+}
+
 
 // // load the iframe
 // import './index.scss'
