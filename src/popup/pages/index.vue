@@ -46,13 +46,39 @@ g: buy now</pre>
                 <text-input label="Stop After X Cards" v-model="options.autosniping.max_cards" type="number" />
             </template>
 
-            <template #title-3>Debug Info</template>
+            <template #title-3>Stats</template>
             <template #content-3>
-                <h2 class="text-xl font-medium">Settings</h2>
-                <pre>{{ options }}</pre>
+                <h3 class="text-lg font-medium text-emerald-300">Current Session</h3>
+                <table class="table mb-4">
+                    <tr>
+                        <th>Coins spent</th>
+                        <td>{{ curStats.currentSession.coinsSpent }}</td>
+                    </tr>
+                    <tr>
+                        <th>Searches</th>
+                        <td>{{ curStats.currentSession.searches }}</td>
+                    </tr>
+                    <tr>
+                        <th>Sniped cards</th>
+                        <td>{{ curStats.currentSession.snipedCards }}</td>
+                    </tr>
+                </table>
 
-                <h2 class="text-xl font-medium mt-4">Stats</h2>
-                <pre>{{ curStats }}</pre>
+                <h3 class="text-lg font-medium text-emerald-300">All time stats</h3>
+                <table class="table">
+                    <tr>
+                        <th>Coins spent</th>
+                        <td>{{ curStats.total.coinsSpent }}</td>
+                    </tr>
+                    <tr>
+                        <th>Searches</th>
+                        <td>{{ curStats.total.searches }}</td>
+                    </tr>
+                    <tr>
+                        <th>Sniped cards</th>
+                        <td>{{ curStats.total.snipedCards }}</td>
+                    </tr>
+                </table>
             </template>
         </accordion>
 

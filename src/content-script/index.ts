@@ -2,7 +2,6 @@ import {storage} from '@/storage'
 import {stats, defaultStats} from '@/stats'
 
 let options = {}
-let allStats = {}
 let lastSnipingState = false
 
 async function clickButton(element) {
@@ -342,6 +341,7 @@ const runLoop = async () => {
     if (result === 1) {
       loopState.stepIdx++
       loopState.sameStepCount = 0
+      loopState.currentWaitTime = -1
     }
     if (result === 2) {
       loopState.errors += 1
@@ -426,6 +426,7 @@ const startSniping = () => {
 
   if (options?.autosniping?.autolist) {
     steps.push(...[
+      LoopSteps.WAIT,
       LoopSteps.LIST_ITEM,
       LoopSteps.WAIT,
       LoopSteps.WAIT,
@@ -453,50 +454,69 @@ const startSniping = () => {
 async function decreaseIncreasePrices(idx, decrease, bound = -1) {
   // var priceValue = document.getElementsByClassName("ut-number-input-control")[idx].value;
 
-  var incDecClass = 'increment-value';
+  var incDecClass = '.increment-value';
   if (decrease) {
-    incDecClass = 'decrement-value';
+    incDecClass = '.decrement-value';
   }
-  var decIncButton = document.getElementsByClassName(incDecClass)[idx];
-  if (decIncButton.classList.contains("disabled")) {
+
+  var decIncButtons = document.querySelectorAll(incDecClass)
+  var decIncButton = decIncButtons[idx]
+
+  if (!decIncButton || decIncButton.classList.contains("disabled")) {
     return
   }
   await clickButton(decIncButton)
 }
 
-async function goBack() {
+const goBack = async () => {
   abortLoop()
 
-  var backButton = document.getElementsByClassName("ut-navigation-button-control")[0];
-  await clickButton(backButton);
-}
-
-async function search() {
-  let result = await xSearch()
-
-  if (result === -1) {
-    // console.log('search failed')
+  var backButton = document.querySelector(".ut-navigation-button-control");
+  if (!backButton) {
+    return -1
   }
+  return await clickButton(backButton);
 }
 
 async function enterPriceAndListNow() {
-  var detailpanel = document.getElementsByClassName("DetailPanel")[0];
-  var bidPriceInput = detailpanel.getElementsByClassName("ut-number-input-control")[0];
-  var buyNowPriceInput = detailpanel.getElementsByClassName("ut-number-input-control")[1];
+  var detailpanel = document.querySelector(".DetailPanel");
+  if (!detailpanel) {
+    console.log('no detailpanel')
+    return -1
+  }
+
+  var numberInputs = detailpanel.querySelectorAll(".ut-number-input-control") as NodeListOf<HTMLInputElement>;
+  if (numberInputs.length < 2) {
+    console.log('no 2 number inputs')
+    return -1
+  }
+
+  var bidPriceInput = numberInputs[0];
+  var buyNowPriceInput = numberInputs[1];
   bidPriceInput.value = options?.listitem?.bidprice ?? 500;
   buyNowPriceInput.value = options?.listitem?.buynowprice ?? 10000;
-  var listNowButton = detailpanel.getElementsByClassName("call-to-action")[0];
-  await clickButton(listNowButton);
+
+  var listNowButton = detailpanel.querySelector(".call-to-action");
+  if (!listNowButton || listNowButton.classList.contains("disabled") || listNowButton.textContent !== "List for Transfer") {
+    console.log('no valid listnow button')
+    return -1
+  }
+  return await clickButton(listNowButton);
 }
 
 async function listNow() {
-  var detailpanel = document.getElementsByClassName("DetailPanel")[0];
-  var listNowButton = detailpanel.getElementsByClassName("call-to-action")[0];
-  await clickButton(listNowButton);
+  var detailpanel = document.querySelector(".DetailPanel");
+  var listNowButton = detailpanel?.querySelector(".call-to-action");
+
+  if (!listNowButton || listNowButton.classList.contains("disabled") || listNowButton.textContent !== "List for Transfer") {
+    console.log('no valid listnow button')
+    return -1
+  }
+  return await clickButton(listNowButton);
 }
 
 document.addEventListener("keydown", async (event) => {
-  if (document.activeElement.tagName === 'INPUT') {
+  if (document.activeElement?.tagName === 'INPUT') {
     return
   }
 
