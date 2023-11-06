@@ -12,6 +12,7 @@ declare module 'vue' {
     RadioGroup: typeof import('./components/RadioGroup.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SelectInput: typeof import('./components/SelectInput.vue')['default']
     TextInput: typeof import('./components/TextInput.vue')['default']
   }
 }

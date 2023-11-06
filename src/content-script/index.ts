@@ -118,7 +118,7 @@ const xCheckResults = async () => {
       prices.push(price)
     }
     let minPrice = Math.min(...prices)
-    let minIdx = prices.indexOf(minPrice)
+    let minIdx = prices.lastIndexOf(minPrice)
     // console.log(prices, minPrice, minIdx)
 
     if (minIdx > 0) {
@@ -168,7 +168,7 @@ const xTransmit = async () => {
       loopState.snipedCards++
       console.log('coins spent', coinsSpent)
 
-      await statsAddSniped(coinsSpent)
+      statsAddSniped(coinsSpent)
 
       return 1
     }
@@ -216,29 +216,57 @@ const xAdjustFilter = async (up: boolean, min: number, max: number) => {
 }
 
 const xListItem = async () => {
-  var detailpanel = document.querySelector(".DetailPanel");
-  if (!detailpanel) {
-    console.log('no detailpanel')
-    return -1
-  }
+  if (options?.autosniping?.autoAction === 1) {
+    var detailpanel = document.querySelector(".DetailPanel");
+    if (!detailpanel) {
+      console.log('no detailpanel')
+      return -1
+    }
 
-  var inputs = detailpanel.querySelectorAll(".ut-number-input-control") as NodeListOf<HTMLInputElement>;
-  if (inputs.length < 2) {
-    console.log('no inputs')
-    return -1
-  }
+    var inputs = detailpanel.querySelectorAll(".ut-number-input-control") as NodeListOf<HTMLInputElement>;
+    if (inputs.length < 2) {
+      console.log('no inputs')
+      return -1
+    }
 
-  var bidPriceInput = inputs[0];
-  var buyNowPriceInput = inputs[1];
-  bidPriceInput.value = options?.listitem?.bidprice ?? 500;
-  buyNowPriceInput.value = options?.listitem?.buynowprice ?? 10000;
+    var bidPriceInput = inputs[0];
+    var buyNowPriceInput = inputs[1];
+    bidPriceInput.value = options?.listitem?.bidprice ?? 500;
+    buyNowPriceInput.value = options?.listitem?.buynowprice ?? 10000;
 
-  var listNowButton = detailpanel.querySelector(".call-to-action");
-  if (!listNowButton) {
-    console.log('no listnow button')
-    return -1
+    var listNowButton = detailpanel.querySelector(".call-to-action");
+    if (!listNowButton) {
+      console.log('no listnow button')
+      return -1
+    }
+    return await clickButton(listNowButton);
+  } else {
+    var buttons = document.querySelectorAll(".DetailPanel > .ut-button-group button") as NodeListOf<HTMLButtonElement>;
+    if (buttons.length < 8) {
+      console.log('not enough buttons')
+      return -1
+    }
+
+    if (options?.autosniping?.autoAction === 0) {
+      var sendToClubOk = true
+      var sendToClubButton = buttons[5]
+      if (!sendToClubButton || sendToClubButton.textContent != "Send to My Club" || sendToClubButton.classList.contains("disabled")) {
+        console.log('no sendtoclub button')
+        sendToClubOk = false
+      }
+      if (sendToClubOk) {
+        return await clickButton(sendToClubButton);
+      }
+    }
+
+    var sendToTransferButton = buttons[7]
+    if (!sendToTransferButton || sendToTransferButton.textContent != "Send to Transfer List" || sendToTransferButton.classList.contains("disabled")) {
+      console.log('no sendtotransfer button')
+      return -1
+    }
+
+    return await clickButton(sendToTransferButton);
   }
-  return await clickButton(listNowButton);
 }
 
 
@@ -312,7 +340,9 @@ const runLoop = async () => {
       break
   }
 
-  // console.log(LOOP_STEP_NAMES[currentStep], result, loopState.sameStepCount, loopState.currentWaitTime)
+  if (result != 0) {
+    console.log(LOOP_STEP_NAMES[currentStep], result, loopState.sameStepCount, loopState.currentWaitTime)
+  }
 
   if (loopState.decisions[currentStep]?.[result]) {
     let decision = loopState.decisions[currentStep][result]
@@ -424,14 +454,13 @@ const startSniping = () => {
     LoopSteps.WAIT,
   ]
 
-  if (options?.autosniping?.autolist) {
-    steps.push(...[
-      LoopSteps.WAIT,
-      LoopSteps.LIST_ITEM,
-      LoopSteps.WAIT,
-      LoopSteps.WAIT,
-    ])
-  }
+  steps.push(...[
+    LoopSteps.WAIT,
+    LoopSteps.LIST_ITEM,
+    LoopSteps.WAIT,
+    LoopSteps.WAIT,
+  ])
+
   steps.push(...[
     LoopSteps.GO_BACK,
     LoopSteps.WAIT,

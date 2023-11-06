@@ -42,7 +42,7 @@ g: buy now</pre>
                 </p>
                 <text-input label="Lowest Bid" v-model="options.autosniping.bidlow" type="number" />
                 <text-input label="Highest Bid" v-model="options.autosniping.bidhigh" type="number" />
-                <check-input label="Autolist cards" v-model="options.autosniping.autolist" />
+                <select-input label="Auto-Action" v-model="options.autosniping.autoAction" :options="autoActionOptions" />
                 <text-input label="Stop After X Cards" v-model="options.autosniping.max_cards" type="number" />
             </template>
 
@@ -107,7 +107,7 @@ g: buy now</pre>
 <script setup lang="ts">
 import Accordion from '@/components/Accordion.vue';
 import TextInput from '@/components/TextInput.vue';
-import CheckInput from '@/components/CheckInput.vue';
+import SelectInput from '@/components/SelectInput.vue';
 import {storage, defaultStorage} from '@/storage';
 import {stats, defaultStats} from '@/stats';
 import RadioGroup from '@/components/RadioGroup.vue';
@@ -131,9 +131,13 @@ const autoselectItems = ref([
         description: 'The cheapest card will be selected',
     }
 ])
+const autoActionOptions = [
+    {value: 0, label: 'Send To Club', },
+    {value: 1, label: 'List On Transfer Market', },
+    {value: 2, label: 'Send To Transfer List', },
+]
 
 watch(autoselect, (val) => {
-    console.log(autoselect.value)
     options.value.general.select_card = autoselectItems.value.indexOf(val)
 })
 
