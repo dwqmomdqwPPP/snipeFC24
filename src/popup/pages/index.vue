@@ -62,6 +62,10 @@ g: buy now</pre>
                         <th>Sniped cards</th>
                         <td>{{ curStats.currentSession.snipedCards }}</td>
                     </tr>
+                    <tr>
+                        <th>Failed snipes</th>
+                        <td>{{ curStats.currentSession.failedSnipes }}</td>
+                    </tr>
                 </table>
 
                 <h3 class="text-lg font-medium text-emerald-300">All time stats</h3>
@@ -77,6 +81,10 @@ g: buy now</pre>
                     <tr>
                         <th>Sniped cards</th>
                         <td>{{ curStats.total.snipedCards }}</td>
+                    </tr>
+                    <tr>
+                        <th>Failed snipes</th>
+                        <td>{{ curStats.total.failedSnipes }}</td>
                     </tr>
                 </table>
             </template>

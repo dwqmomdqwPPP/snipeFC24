@@ -1,11 +1,13 @@
 type IStats = {
     total: {
         snipedCards: number,
+        failedSnipes: number,
         searches: number,
         coinsSpent: number,
     },
     currentSession: {
         snipedCards: number,
+        failedSnipes: number,
         searches: number,
         coinsSpent: number,
     }
@@ -14,11 +16,13 @@ type IStats = {
 export const defaultStats: IStats = {
     total: {
         snipedCards: 0,
+        failedSnipes: 0,
         searches: 0,
         coinsSpent: 0,
     },
     currentSession: {
         snipedCards: 0,
+        failedSnipes: 0,
         searches: 0,
         coinsSpent: 0,
     }

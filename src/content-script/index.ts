@@ -156,6 +156,7 @@ const xTransmit = async () => {
   if (notificationLayer) {
     let notifications = notificationLayer.getElementsByClassName('Notification negative')
     if (notifications.length) {
+      statsAddFailedSnipe()
       return -1
     }
   }
@@ -166,7 +167,6 @@ const xTransmit = async () => {
     if (subHeading && subHeading.textContent?.includes("Congratulations")) {
       let coinsSpent = Number(auctionInfo.querySelector('.currency-coins')?.textContent?.replaceAll(',', ''))
       loopState.snipedCards++
-      console.log('coins spent', coinsSpent)
 
       statsAddSniped(coinsSpent)
 
@@ -391,7 +391,7 @@ const runLoop = async () => {
     abortLoop()
   }
 
-  if (loopState.snipedCards >= (options?.autosniping?.max_cards ?? 10)) {
+  if (currentStep == LoopSteps.ADJUST_FILTER && loopState.snipedCards >= (options?.autosniping?.max_cards ?? 10)) {
     console.log('Sniped item limit reached, stopping')
     abortLoop()
   }
@@ -650,6 +650,15 @@ const sendNotification = (title, message) => {
 const resetCurrentSessionStats = async () => {
   const data = await stats.get();
   data.currentSession = JSON.parse(JSON.stringify(defaultStats.currentSession))
+  await stats.set(data)
+}
+
+const statsAddFailedSnipe = async () => {
+  const data = await stats.get();
+
+  data.total.failedSnipes++
+  data.currentSession.failedSnipes++
+
   await stats.set(data)
 }
 
