@@ -16,7 +16,10 @@
     "dev": {
       "name": "dev",
       "command": "pnpm dev",
-      "runAtStart": true
+      "runAtStart": true,
+      "preview": {
+        "port": 8888
+      }
     },
     "lint": {
       "name": "lint",
